@@ -1,0 +1,81 @@
+---
+title: "Exercise 6"
+author: "Arthur Junges Schmidt"
+date: "`r as.character(Sys.time(), '%d %B %Y')`"
+output:
+  pdf_document: default
+  documentclass: report
+  html_notebook: default
+  html_document:
+    df_print: paged
+geometry: margin=2cm
+  
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+Original_Data <- read_csv("Problemset 2 data for problem 6 DaimlerChrysler.csv", 
+    skip = 1)
+
+Original_Data <- Original_Data[-(22:34),] ## Taking out unnecessary rows 
+```
+
+The data which can be found in a separate spreadsheet provides the highway gasoline mileage
+test results for 2005 model year vehicles from DaimlerChrysler.
+(1) Fit a multiple linear regression model to these data to estimate gasoline mileage that uses the
+following regressors: cid, rhp, etw, cmp, axle, n/v
+
+```{r}
+
+Linear_Model <- lm(formula = mpg ~ cid + rhp + etw + cmp + axle + 
+                     `n/v`, 
+                   data = Original_Data);
+summary(Linear_Model)
+
+```
+
+
+
+(2) Estimate $\sigma^{2}$ and the standard errors of the regression coefficients.
+
+$\sigma^{2}$ values:
+```{r echo=FALSE}
+diag(vcov(Linear_Model))
+```
+
+Standard errors:
+```{r echo=FALSE}
+summary(Linear_Model)$coefficients[,2]
+```
+
+(3) Test for significance of regression using $\alpha$ = 0.05. What conclusions can you draw?
+Only the intercept and the 'etw' and 'axle' variables have a significance of 95% or higher. This leads to the conclusion that, with 95% certainty, only the axle ration and the equivalent test weight variables are significant to explain the mileage of the vehicles on the data set.
+
+(4) Find the t-test statistic for each regressor. Using $\alpha$ = 0.05, what conclusions can you draw? Does each regressor contribute to the model?
+
+T-test statistic for each regressor:
+```{r echo=FALSE}
+summary(Linear_Model)$coefficients[,3]
+```
+
+As on the question before, the only 2 variables that have a significant t-test are 'etw' and 'axle'. Not all the regressor contributes to the model since some of them add more error into it.
+
+
+(5) Find 99% confidence intervals on the regression coefficients.
+```{r echo=FALSE}
+confint.lm(Linear_Model, level = 0.99)
+```
+
+(6) Plot residuals versus $\hat{Y}$ and versus each regressor. Discuss these residual plots.
+```{r fig.height=15, fig.width=10}
+par(mfrow = c(5,2))
+plot(x = Linear_Model$model$cid, y = resid(Linear_Model), xlab = "cid", ylab = "Residuals")
+plot(x = Linear_Model$model$rhp, y = resid(Linear_Model), xlab = "rhp", ylab = "Residuals")
+plot(x = Linear_Model$model$etw, y = resid(Linear_Model), xlab = "etw", ylab = "Residuals")
+plot(x = Linear_Model$model$cmp, y = resid(Linear_Model), xlab = "cmp", ylab = "Residuals")
+plot(x = Linear_Model$model$axle, y = resid(Linear_Model), xlab = "axle", ylab = "Residuals")
+plot(x = Linear_Model$model$`n/v`, y = resid(Linear_Model), xlab = "n/v", ylab = "Residuals")
+plot(Linear_Model)
+
+```
+

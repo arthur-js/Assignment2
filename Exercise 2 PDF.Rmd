@@ -1,0 +1,238 @@
+---
+title: "Exercise 2"
+author: "Arthur Junges Schmidt"
+date: "`r as.character(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+```{r include=FALSE}
+# Clear all ---------------------------------------------------------------
+rm(list=ls())
+gc()
+cat("\014") 
+
+
+# Libraries ---------------------------------------------------------------
+library(tidyverse)
+library(nnet)
+library(neuralnet)
+library(h2o)
+```
+
+
+
+First step is the data processing of the CSV file.
+
+```{r Data processing, message=FALSE}
+# Read data from CSV ------------------------------------------------------
+
+Crude_Data <- read_csv("Problemset 2 data for problem 2.csv", skip = 1, col_names = TRUE);
+
+
+for (i in 1:length(Crude_Data)) {
+  if (i <= 3) {
+    colnames(Crude_Data)[i] <- paste("Volume", i, sep = ".");
+  }
+  if (i > 3) {
+    colnames(Crude_Data)[i] <- paste("Speed", i-3, sep = ".");
+  }
+
+}
+
+Input_Data <- as.data.frame(c(Crude_Data[,1:2], Crude_Data[, 4:5]), check.names = FALSE);
+Output_Data <- as.data.frame(c(Crude_Data[, 3], Crude_Data[, 6]), check.names = FALSE);
+
+# Separate Datasets  ------------------------------------------------------
+
+## The last 3 days of data correspond to the last (24 x 3) = 72 rows of the data set
+## The test data is (744 - 72) x 20% =~ 135
+## The train data is what's left (744 - 72 - 135) = 537
+Input_Data_Training <- Input_Data[1:537, ];
+Input_Data_Testing <- Input_Data[(537+1):(537+135), ];
+Input_Data_Forecast <- Input_Data[(537 + 135 + 1):nrow(Input_Data), ];
+
+
+Output_Data_Training <- Output_Data[1:537, ];
+Output_Data_Testing <- Output_Data[(537+1):(537+135), ];
+Output_Data_Forecast <- Output_Data[(537 + 135 + 1):nrow(Output_Data), ];
+
+Training_Data <- cbind(Input_Data_Training, Output_Data_Training);
+Validation_Data <- cbind(Input_Data_Testing, Output_Data_Testing);
+# Training_Data <- Training_Data[, c(1,2,5,3,4,6)]
+# Training_Data <- as.h2o(Training_Data);
+
+Predictors <- names(Input_Data_Training);
+Response <- names(Output_Data_Training);
+```
+
+
+The procedure of determining which configuration of hidden layers and number of nodes involves a for loop creating every possibility possible within the boundaries from the exercise. These boundaries were the number of hidden layers (1 to 3) and the number of nodes on each hidden layer (from 5 to 10). The package used is h2o. Keras and tensorflow were extensively tried but wouldn't work on my R installation. The package h2o has a limitation of one output per neural network. In this case, two sets of neural networks were created, one for the 'Volume 3' output and another for 'Speed 3' output.
+
+\scriptsize 
+
+```{r Neural Network creation, message=FALSE, warning=FALSE, cache=TRUE}
+h2o.init(nthreads = -1);
+h2o.no_progress();
+Model_DL_Speed3 <- list()
+Model_DL_Speed3_Performance <- list()
+Model_DL_Volume3 <- list()
+Model_DL_Volume3_Performance <- list()
+
+n <- 0;
+for (i in 1:3) {
+  if (i==1) {
+    for (j in 5:10) {
+      n <- n + 1;
+      Model_DL_Speed3[n] <- list(h2o.deeplearning(x = Predictors, y = "Speed.3",
+                                          training_frame = Training_Data %>% as.h2o(), 
+                                          model_id = paste(i, "hidden layer with", j, "nodes", sep = " "), 
+                                          hidden = c(j), validation_frame = Validation_Data %>% as.h2o()));
+      Model_DL_Speed3_Performance[n] <- list(h2o.performance(Model_DL_Speed3[[n]], valid = TRUE ))
+      
+      Model_DL_Volume3[n] <- list(h2o.deeplearning(x = Predictors, y = "Volume.3",
+                                                  training_frame = Training_Data %>% as.h2o(), 
+                                                  model_id = paste(i, "hidden layer with", j, "nodes", sep = " "), 
+                                                  hidden = c(j), validation_frame = Validation_Data %>% as.h2o()));
+      Model_DL_Volume3_Performance[n] <- list(h2o.performance(Model_DL_Volume3[[n]], valid = TRUE))
+    }
+  }
+  if (i==2) {
+    for (j in 5:10) {
+      for (k in 5:10) {
+        n <- n + 1;
+        Model_DL_Speed3[n] <- list(h2o.deeplearning(x = Predictors, y = "Speed.3",
+                                                    training_frame = Training_Data %>% as.h2o(), 
+                                                    model_id = paste(i, "hidden layers with", j, "and", k, "nodes", sep = " "), 
+                                                    hidden = c(j,k), validation_frame = Validation_Data %>% as.h2o()));
+        Model_DL_Speed3_Performance[n] <- list(h2o.performance(Model_DL_Speed3[[n]], valid = TRUE))
+        
+        Model_DL_Volume3[n] <- list(h2o.deeplearning(x = Predictors, y = "Volume.3",
+                                                    training_frame = Training_Data %>% as.h2o(), 
+                                                    model_id = paste(i, "hidden layers with", j, "and", k, "nodes", sep = " "), 
+                                                    hidden = c(j,k), validation_frame = Validation_Data %>% as.h2o()));
+        Model_DL_Volume3_Performance[n] <- list(h2o.performance(Model_DL_Volume3[[n]], valid = TRUE))
+      }
+    }
+  }
+  if (i==3) {
+    for (j in 5:10) {
+      for (k in 5:10) {
+        for (l in 5:10) {
+          n <- n + 1;
+          Model_DL_Speed3[n] <- list(h2o.deeplearning(x = Predictors, y = "Speed.3",
+                                                      training_frame = Training_Data %>% as.h2o(), 
+                                                      model_id = paste(i, "hidden layers with", j, ",", k, "and", l, "nodes", sep = " "), 
+                                                      hidden = c(j, k, l), validation_frame = Validation_Data %>% as.h2o()));
+          Model_DL_Speed3_Performance[n] <- list(h2o.performance(Model_DL_Speed3[[n]], valid = TRUE))
+          
+          Model_DL_Volume3[n] <- list(h2o.deeplearning(x = Predictors, y = "Volume.3",
+                                                      training_frame = Training_Data %>% as.h2o(), 
+                                                      model_id = paste(i, "hidden layers with", j, ",", k, "and", l, "nodes", sep = " "), 
+                                                      hidden = c(j, k, l), validation_frame = Validation_Data %>% as.h2o()));
+          Model_DL_Volume3_Performance[n] <- list(h2o.performance(Model_DL_Volume3[[n]], valid = TRUE))
+          
+          
+          #print(paste(i, "hidden layers with", j, ",", k, "and", l, "nodes", sep = " "));
+          
+          
+        }
+      }
+    }
+  }
+}
+
+```
+\normalsize
+In order to compare all the models created, some metrics are compared. Mean square error (MSE) and root-mean-square error (RMSE) were used. Both values were plotted, with the model id on the horizontal axis. Model ID tells the number of layers and nodes of the neural network.
+
+
+```{r Errors for the Speed neural networks, warning=FALSE}
+Metrics_Speed3 <- data.frame(matrix(data = 0,nrow = length(Model_DL_Speed3_Performance), 
+                                    ncol = 5))
+colnames(Metrics_Speed3) <- c("MSE.Train", "MSE.Valid", "RMSE.Train", "RMSE.Valid", 
+                              "ModelID")
+#Initializing the variable MSE_Speed3
+
+for (i in 1:length(Model_DL_Speed3_Performance)) {
+  Metrics_Speed3[i,] <- c(h2o.mse(Model_DL_Speed3[[i]], valid = TRUE, train = TRUE), 
+                          h2o.rmse(Model_DL_Speed3[[i]], valid = TRUE, train = TRUE), 
+                          Model_DL_Speed3[[i]]@model_id)
+  ## Put the MSE values of every model into the variable MSE_Speed3 for a graph
+}
+
+ggplot(data = Metrics_Speed3, mapping = aes(x = as.character(ModelID))) + 
+  geom_point(aes(y = as.numeric(MSE.Train), colour = "MSE.Train")) +
+  geom_point(aes(y = as.numeric(MSE.Valid), colour = "MSE.Valid")) +
+  ylim(0,50) + 
+  theme(axis.ticks = element_line(size  =  0.2, linetype  =  'blank'),
+        panel.grid.major = element_line(linetype  =  'blank'), 
+        panel.grid.minor = element_line(colour  =  'ivory4'),
+        axis.text.x = element_text(angle = 90, size = 7)) + 
+  xlab("Number of layers and nodes") +
+  ylab("MSE Error")  +
+  scale_x_discrete(breaks = Metrics_Speed3$ModelID[c(T, F, F, F)]) +
+  ggtitle("MSE Errors for Speed")
+
+ggplot(data = Metrics_Speed3, mapping = aes(x = as.character(ModelID))) + 
+  geom_point(aes(y = as.numeric(RMSE.Train), colour = "RMSE.Train")) +
+  geom_point(aes(y = as.numeric(RMSE.Valid), colour = "RMSE.Valid")) +
+  ylim(0,10) + 
+  theme(axis.ticks = element_line(size  =  0.2, linetype  =  'blank'),
+        panel.grid.major = element_line(linetype  =  'blank'), 
+        panel.grid.minor = element_line(colour  =  'ivory4'),
+        axis.text.x = element_text(angle = 90, size = 7)) + 
+  xlab("Number of layers and nodes") +
+  ylab("RMSE Error")  +
+  scale_x_discrete(breaks = Metrics_Speed3$ModelID[c(T, F, F, F)]) +
+  ggtitle("RMSE Errors for Speed")
+```
+The same steps are taken for the Volume in position 3 as output.
+```{r Errors for the Volume3 Neural Networks, warning=FALSE}
+## Metrics for the Volume3 neural networks
+
+Metrics_Volume3 <- data.frame(matrix(data = 0,
+                                     nrow = length(Model_DL_Volume3_Performance), 
+                                     ncol = 5))
+colnames(Metrics_Volume3) <- c("MSE.Train", "MSE.Valid", "RMSE.Train", "RMSE.Valid", 
+                               "ModelID")
+#Initializing the variable MSE_Speed3
+
+for (i in 1:length(Model_DL_Volume3_Performance)) {
+  Metrics_Volume3[i,] <- c(h2o.mse(Model_DL_Volume3[[i]], valid = TRUE, train = TRUE), 
+                          h2o.rmse(Model_DL_Volume3[[i]], valid = TRUE, train = TRUE), 
+                          Model_DL_Volume3[[i]]@model_id)
+  ## Put the MSE values of every model into the variable MSE_Speed3 for a graph
+}
+
+
+ggplot(data = Metrics_Volume3, mapping = aes(x = as.character(ModelID))) + 
+  geom_point(aes(y = as.numeric(MSE.Train), colour = "MSE.Train")) +
+  geom_point(aes(y = as.numeric(MSE.Valid), colour = "MSE.Valid")) +
+  ylim(0, 800000) + 
+  theme(axis.ticks = element_line(size  =  0.2, linetype  =  'blank'),
+        panel.grid.major = element_line(linetype  =  'blank'), 
+        panel.grid.minor = element_line(colour  =  'ivory4'),
+        axis.text.x = element_text(angle = 90, size = 7)) + 
+  xlab("Number of layers and nodes") +
+  ylab("MSE Error")  +
+  scale_x_discrete(breaks = Metrics_Volume3$ModelID[c(T, F, F, F)]) +
+  ggtitle("MSE Errors for Volume")
+
+ggplot(data = Metrics_Volume3, mapping = aes(x = as.character(ModelID))) + 
+  geom_point(aes(y = as.numeric(RMSE.Train), colour = "RMSE.Train")) +
+  geom_point(aes(y = as.numeric(RMSE.Valid), colour = "RMSE.Valid")) +
+  ylim(0,1300) + 
+  theme(axis.ticks = element_line(size  =  0.2, linetype  =  'blank'),
+        panel.grid.major = element_line(linetype  =  'blank'), 
+        panel.grid.minor = element_line(colour  =  'ivory4'),
+        axis.text.x = element_text(angle = 90, size = 7)) + 
+  xlab("Number of layers and nodes") +
+  ylab("RMSE Error")  +
+  scale_x_discrete(breaks = Metrics_Volume3$ModelID[c(T, F, F, F)]) +
+  ggtitle("RMSE Errors for Volume")
+```
+
+It can be seen in the graphs that the performance of the networks don't change munch according to their hidden layer number and number of nodes. 
+

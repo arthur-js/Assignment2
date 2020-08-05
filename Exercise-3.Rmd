@@ -1,0 +1,41 @@
+---
+title: "Exercise 3"
+author: "Arthur Junges Schmidt"
+date: "`r as.character(Sys.time(), '%d %B %Y')`"
+output:
+  pdf_document: default
+  documentclass: report
+  html_notebook: default
+  html_document:
+    df_print: paged
+geometry: margin=2cm
+---
+(a) How many regressor variables are in this model?
+$$\text{Number of Variables = 3}$$
+
+(b) If the error sum of squares is 307 and there are 15 observations, what is the estimate of $\sigma^{2}$?
+
+$$\sigma^{2} = \frac{SSe}{N-1}$$
+
+```{r}
+SSe<- 307
+N <- 15
+
+Variance <- SSe/(N - 1) 
+print(Variance)
+```
+
+(c) What is the standard error of the regression coefficient $\hat\beta_{1}$?
+
+Variance $\sigma^{2}$ was calculated on question B, with value `r round(Variance, 3)`. The equation to discover the error of the regression coefficient is $$SE(\hat\beta_{1}) = \sqrt{\frac{\hat{\sigma}^{2}}{\sum_{i=1}^n  ( x_{i}- \overline{x})^{2} }}$$
+
+Since the value on position [3,3] on the matrix is represents $$\sum_{i=1}^n  ( x_{i}- \overline{x})^{2}$$,
+then the $SE(\hat\beta_{1})$ is $\sigma^{2}\times 0.0009108 =$ `r Variance * 0.0009108`
+
+```{r}
+
+
+
+
+```
+

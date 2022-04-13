@@ -234,5 +234,5 @@ ggplot(data = Metrics_Volume3, mapping = aes(x = as.character(ModelID))) +
   ggtitle("RMSE Errors for Volume")
 ```
 
-It can be seen in the graphs that the performance of the networks don't change munch according to their hidden layer number and number of nodes. 
+It can be seen in the graphs that the performance of the networks doesn't change much according to their hidden layer number and number of nodes. 
 
